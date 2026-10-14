@@ -1,22 +1,274 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>DSA Visualizer</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Algorithm Visualizer</title>
+<style>
+:root{--bg:#f4f5f8;--panel:#fff;--ink:#151a2c;--mute:#5b6478;--bar:#8aa0c8;--cmp:#f59e0b;--swap:#ef476f;--done:#14b8a6;--line:#dfe3ec;--accent:#4f46e5;--on:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1220;--panel:#161b2e;--ink:#e8ecf8;--mute:#8b95b0;--bar:#4a5f8f;--cmp:#fbbf24;--swap:#fb7185;--done:#2dd4bf;--line:#262d45;--accent:#818cf8;--on:#0e1220}}
+:root[data-theme="dark"]{--bg:#0e1220;--panel:#161b2e;--ink:#e8ecf8;--mute:#8b95b0;--bar:#4a5f8f;--cmp:#fbbf24;--swap:#fb7185;--done:#2dd4bf;--line:#262d45;--accent:#818cf8;--on:#0e1220}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 32px}
+h1{font-size:1.6rem;letter-spacing:-.02em;margin:4px 0 2px}
+.sub{color:var(--mute);margin:0 0 18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+button,input{font:inherit;color:inherit}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:8px;cursor:pointer;color:var(--mute)}
+.seg button.on{background:var(--accent);color:var(--on);font-weight:600}
+.chips{margin:12px 0}
+.chip{border:1px solid var(--line);background:var(--panel);padding:6px 12px;border-radius:99px;cursor:pointer}
+.chip.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+.info{color:var(--mute);margin:0 0 12px;min-height:3em}
+.ctl{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;margin-bottom:14px}
+.ctl label{display:flex;flex-direction:column;gap:2px;font-size:.8rem;color:var(--mute);min-width:140px;flex:1}
+input[type=range]{accent-color:var(--accent);width:100%}
+#target{width:90px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.btn{border:1px solid var(--line);background:var(--panel);padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600}
+.btn.go{background:var(--accent);color:var(--on);border-color:var(--accent)}
+.btn.stop{border-color:var(--swap);color:var(--swap)}
+button:disabled,input:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#stage{display:flex;align-items:flex-end;gap:2px;height:min(340px,50vh);padding:12px 12px 0;margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.bar{flex:1;min-width:0;background:var(--bar);border-radius:3px 3px 0 0;transition:height .06s,opacity .15s}
+.bar.pivot{background:var(--accent)}
+.bar.cmp{background:var(--cmp)}
+.bar.swap{background:var(--swap)}
+.bar.done{background:var(--done)}
+.bar.dim{opacity:.3}
+.stats{display:flex;gap:10px;margin-top:12px}
+.stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stat b{display:block;font-size:1.35rem;font-variant-numeric:tabular-nums}
+.stat span{font-size:.8rem;color:var(--mute)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:12px 0 0;font-size:.82rem;color:var(--mute)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#status{margin-top:10px;min-height:1.5em;font-weight:600}
+.hide{display:none!important}
+@media (prefers-reduced-motion:reduce){.bar{transition:none}}
+</style>
 </head>
 <body>
+<div class="wrap">
+  <h1>Algorithm Visualizer</h1>
+  <p class="sub">Watch sorting and searching algorithms work, step by step.</p>
 
-<h1>Sorting Visualizer</h1>
+  <div class="panel">
+    <div class="row">
+      <div class="seg" id="modes">
+        <button data-m="sort" class="on">Sorting</button>
+        <button data-m="search">Searching</button>
+      </div>
+    </div>
+    <div class="row chips" id="chips"></div>
+    <p class="info" id="info"></p>
 
-<div class="controls">
-  <button onclick="generateArray()">Generate New Array</button>
-  <button onclick="bubbleSort()">Bubble Sort</button>
-  <button onclick="selectionSort()">Selection Sort</button>
+    <div class="ctl">
+      <label>Array size: <b id="sizeV">40</b><input type="range" id="size" min="8" max="100" value="40"></label>
+      <label>Speed: <b id="speedV">70</b><input type="range" id="speed" min="1" max="100" value="70"></label>
+      <label id="tWrap" class="hide">Target value<input type="number" id="target" min="10" max="299"></label>
+    </div>
+    <div class="row">
+      <button class="btn go" id="run">Sort</button>
+      <button class="btn stop hide" id="stop">Stop</button>
+      <button class="btn" id="shuffle">New array</button>
+    </div>
+  </div>
+
+  <div id="stage" aria-label="Array bars"></div>
+  <div class="legend">
+    <span><i style="background:var(--cmp)"></i>Comparing</span>
+    <span><i style="background:var(--swap)"></i>Swapping / writing</span>
+    <span><i style="background:var(--accent)"></i>Pivot / minimum</span>
+    <span><i style="background:var(--done)"></i>Sorted / found</span>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="sC">0</b><span>Comparisons</span></div>
+    <div class="stat"><b id="sS">0</b><span>Swaps / writes</span></div>
+    <div class="stat"><b id="sT">0.0s</b><span>Time</span></div>
+  </div>
+  <div id="status" role="status"></div>
 </div>
 
-<div id="array"></div>
+<script>
+const $ = s => document.querySelector(s);
+const ALGOS = {
+  sort: {
+    bubble:    ['Bubble Sort',    'Swaps neighbours that are out of order, so the largest value bubbles to the end each pass. Time O(n²), space O(1).'],
+    selection: ['Selection Sort', 'Finds the smallest remaining value and places it at the front. Time O(n²), space O(1).'],
+    insertion: ['Insertion Sort', 'Takes each value and slides it left into its place. Fast on nearly sorted data. Time O(n²), best O(n).'],
+    merge:     ['Merge Sort',     'Splits the array in halves, sorts each, then merges them. Time O(n log n), space O(n).'],
+    quick:     ['Quick Sort',     'Picks a pivot, moves smaller values left and larger right, then repeats on each side. Average O(n log n).'],
+    heap:      ['Heap Sort',      'Builds a max-heap, then repeatedly moves the largest value to the end. Time O(n log n), space O(1).']
+  },
+  search: {
+    linear: ['Linear Search', 'Checks every element from left to right. Time O(n). Works on any array.'],
+    binary: ['Binary Search', 'Checks the middle and discards half each step. Time O(log n). Needs a sorted array.']
+  }
+};
+let mode = 'sort', algo = 'bubble', arr = [], bars = [], running = false, cancel = false, stats = {c:0, s:0}, t0 = 0;
+const st = $('#stage');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const delay = () => Math.max(1, 220 - (+$('#speed').value) * 2.15);
+async function tick(){ if (cancel) throw 0; await sleep(delay()); if (cancel) throw 0; }
+const mark = (i, c) => bars[i].classList.add(c);
+const unmark = (i, c) => bars[i].classList.remove(c);
+function setH(i, v){ arr[i] = v; bars[i].style.height = v / 300 * 100 + '%'; bars[i].title = v; }
+function upd(){ $('#sC').textContent = stats.c; $('#sS').textContent = stats.s; $('#sT').textContent = ((performance.now() - t0) / 1000).toFixed(1) + 's'; }
 
-<script src="script.js"></script>
+function draw(){
+  st.innerHTML = '';
+  bars = arr.map(v => { const b = document.createElement('div'); b.className = 'bar'; b.style.height = v / 300 * 100 + '%'; b.title = v; st.appendChild(b); return b; });
+}
+function gen(){
+  if (running) return;
+  arr = Array.from({length: +$('#size').value}, () => 10 + Math.floor(Math.random() * 290));
+  draw();
+  $('#target').value = arr[Math.floor(Math.random() * arr.length)];
+  stats = {c:0, s:0}; t0 = performance.now(); upd(); $('#status').textContent = '';
+}
+
+async function cmp(i, j){ stats.c++; mark(i, 'cmp'); mark(j, 'cmp'); upd(); await tick(); unmark(i, 'cmp'); unmark(j, 'cmp'); }
+async function swap(i, j){
+  stats.s++; mark(i, 'swap'); mark(j, 'swap');
+  const a = arr[i], b = arr[j]; setH(i, b); setH(j, a); upd();
+  await tick(); unmark(i, 'swap'); unmark(j, 'swap');
+}
+async function put(k, v){ mark(k, 'swap'); setH(k, v); stats.s++; upd(); await tick(); unmark(k, 'swap'); }
+
+async function bubble(){
+  const n = arr.length;
+  for (let i = 0; i < n - 1; i++){
+    let sw = false;
+    for (let j = 0; j < n - i - 1; j++){ await cmp(j, j + 1); if (arr[j] > arr[j + 1]){ await swap(j, j + 1); sw = true; } }
+    mark(n - i - 1, 'done'); if (!sw) break;
+  }
+}
+async function selection(){
+  const n = arr.length;
+  for (let i = 0; i < n - 1; i++){
+    let m = i; mark(m, 'pivot');
+    for (let j = i + 1; j < n; j++){ await cmp(m, j); if (arr[j] < arr[m]){ unmark(m, 'pivot'); m = j; mark(m, 'pivot'); } }
+    unmark(m, 'pivot'); if (m !== i) await swap(i, m); mark(i, 'done');
+  }
+}
+async function insertion(){
+  for (let i = 1; i < arr.length; i++){
+    let j = i - 1;
+    while (j >= 0){ await cmp(j, j + 1); if (arr[j] > arr[j + 1]){ await swap(j, j + 1); j--; } else break; }
+  }
+}
+async function msort(l, r){
+  if (l >= r) return;
+  const m = (l + r) >> 1;
+  await msort(l, m); await msort(m + 1, r);
+  const L = arr.slice(l, m + 1), R = arr.slice(m + 1, r + 1);
+  let i = 0, j = 0, k = l;
+  while (i < L.length && j < R.length){ stats.c++; await put(k++, L[i] <= R[j] ? L[i++] : R[j++]); }
+  while (i < L.length) await put(k++, L[i++]);
+  while (j < R.length) await put(k++, R[j++]);
+}
+async function qs(lo, hi){
+  if (lo >= hi){ if (lo === hi) mark(lo, 'done'); return; }
+  mark(hi, 'pivot'); let p = lo;
+  for (let j = lo; j < hi; j++){ await cmp(j, hi); if (arr[j] < arr[hi]){ if (p !== j) await swap(p, j); p++; } }
+  if (p !== hi) await swap(p, hi);
+  unmark(hi, 'pivot'); mark(p, 'done');
+  await qs(lo, p - 1); await qs(p + 1, hi);
+}
+async function sift(n, i){
+  while (true){
+    let m = i, l = 2 * i + 1, r = l + 1;
+    if (l < n){ await cmp(m, l); if (arr[l] > arr[m]) m = l; }
+    if (r < n){ await cmp(m, r); if (arr[r] > arr[m]) m = r; }
+    if (m === i) return;
+    await swap(i, m); i = m;
+  }
+}
+async function heap(){
+  const n = arr.length;
+  for (let i = (n >> 1) - 1; i >= 0; i--) await sift(n, i);
+  for (let e = n - 1; e > 0; e--){ await swap(0, e); mark(e, 'done'); await sift(e, 0); }
+}
+const SORT = {bubble, selection, insertion, heap, merge: () => msort(0, arr.length - 1), quick: () => qs(0, arr.length - 1)};
+
+async function linear(t){
+  for (let i = 0; i < arr.length; i++){
+    mark(i, 'cmp'); stats.c++; upd(); await tick(); unmark(i, 'cmp');
+    if (arr[i] === t){ mark(i, 'done'); return i; }
+    mark(i, 'dim');
+  }
+  return -1;
+}
+async function binary(t){
+  let lo = 0, hi = arr.length - 1;
+  while (lo <= hi){
+    const m = (lo + hi) >> 1;
+    mark(m, 'cmp'); stats.c++; upd(); await tick(); unmark(m, 'cmp');
+    if (arr[m] === t){ mark(m, 'done'); return m; }
+    if (arr[m] < t){ for (let i = lo; i <= m; i++) mark(i, 'dim'); lo = m + 1; }
+    else { for (let i = m; i <= hi; i++) mark(i, 'dim'); hi = m - 1; }
+  }
+  return -1;
+}
+
+function lock(on){
+  ['#size', '#shuffle', '#target'].forEach(s => $(s).disabled = on);
+  document.querySelectorAll('#modes button, .chip').forEach(b => b.disabled = on);
+  $('#run').disabled = on; $('#stop').classList.toggle('hide', !on);
+}
+async function run(){
+  if (running) return;
+  running = true; cancel = false; stats = {c:0, s:0}; t0 = performance.now();
+  bars.forEach(b => b.className = 'bar'); upd(); lock(true);
+  let msg = '';
+  try {
+    if (mode === 'sort'){
+      await SORT[algo]();
+      for (let i = 0; i < arr.length; i++){ mark(i, 'done'); if (i % 2 === 0) await sleep(8); }
+      msg = 'Sorted in ' + stats.c + ' comparisons.';
+    } else {
+      const t = +$('#target').value;
+      if (algo === 'binary' && arr.some((v, i) => i && arr[i - 1] > v)){
+        arr.sort((a, b) => a - b); draw(); msg = 'Sorted first, since binary search needs sorted data. ';
+      }
+      const idx = await (algo === 'binary' ? binary(t) : linear(t));
+      msg += idx >= 0 ? 'Found ' + t + ' at position ' + (idx + 1) + ' after ' + stats.c + ' checks.' : t + ' is not in the array (' + stats.c + ' checks).';
+    }
+  } catch (e) {
+    if (e !== 0) throw e;
+    bars.forEach(b => b.className = 'bar'); msg = 'Stopped.';
+  }
+  upd(); running = false; lock(false); $('#status').textContent = msg;
+}
+
+function renderChips(){
+  const box = $('#chips'); box.innerHTML = '';
+  for (const k in ALGOS[mode]){
+    const b = document.createElement('button');
+    b.className = 'chip' + (k === algo ? ' on' : ''); b.textContent = ALGOS[mode][k][0];
+    b.onclick = () => { algo = k; renderChips(); };
+    box.appendChild(b);
+  }
+  $('#info').textContent = ALGOS[mode][algo][1];
+  $('#run').textContent = mode === 'sort' ? 'Sort' : 'Find';
+  $('#tWrap').classList.toggle('hide', mode !== 'search');
+}
+document.querySelectorAll('#modes button').forEach(b => b.onclick = () => {
+  mode = b.dataset.m; algo = Object.keys(ALGOS[mode])[0];
+  document.querySelectorAll('#modes button').forEach(x => x.classList.toggle('on', x === b));
+  renderChips(); $('#status').textContent = '';
+});
+$('#size').oninput = e => { $('#sizeV').textContent = e.target.value; gen(); };
+$('#speed').oninput = e => $('#speedV').textContent = e.target.value;
+$('#shuffle').onclick = gen;
+$('#run').onclick = run;
+$('#stop').onclick = () => { cancel = true; };
+renderChips(); gen();
+</script>
 </body>
 </html>
